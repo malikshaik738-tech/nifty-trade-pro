@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NIFTY TRADE PRO – Options P&L Calculator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+        },
+      },
+    };
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #0a0e1a; color: #e2e8f0; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0a0e1a; }
+    ::-webkit-scrollbar-thumb { background: #2d3348; border-radius: 3px; }
+
+    .glass-card {
+      background: linear-gradient(135deg, rgba(30, 35, 55, 0.95), rgba(20, 24, 40, 0.98));
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .glass-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .input-field {
+      background: rgba(15, 18, 30, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #e2e8f0;
+      font-size: 16px;
+      font-weight: 500;
+      width: 100%;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    .input-field:focus {
+      border-color: rgba(99, 102, 241, 0.5);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+    .input-field::placeholder { color: #4a5068; }
+
+    select.input-field { cursor: pointer; }
+    select.input-field option { background: #141828; color: #e2e8f0; }
+
+    .profit-card {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.04));
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .profit-card:hover { border-color: rgba(16, 185, 129, 0.35); }
+
+    .loss-card {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(239, 68, 68, 0.04));
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    .loss-card:hover { border-color: rgba(239, 68, 68, 0.35); }
+
+    .grid-bg {
+      background-image:
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(99,102,241,0.3); }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.06);
+      color: #94a3b8;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.1); color: #e2e8f0; }
+
+    .btn-green {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-green:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(16,185,129,0.3); }
+
+    .pulse-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: #10b981;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.3); }
+    }
+
+    .fade-in { animation: fadeIn 0.5s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .rrr-bar {
+      height: 8px;
+      border-radius: 4px;
+      background: #1e2337;
+      overflow: hidden;
+      position: relative;
+    }
+    .rrr-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .number-big {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+    }
+
+    @media (max-width: 768px) {
+      .number-big { font-size: 22px; }
+    }
+
+    .broker-modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 50;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .broker-modal {
+      background: #141828;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 32px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #10b981;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      z-index: 100;
+      animation: slideUp 0.3s ease-out;
+    }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body class="grid-bg min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useMemo } = React;
+
+    /* ─── Helpers ─── */
+    const fmt = (n) => {
+      if (n === undefined || n === null || isNaN(n)) return '0.00';
+      const abs = Math.abs(n);
+      if (abs >= 1e7) return (n < 0 ? '-' : '') + '₹' + (abs / 1e7).toFixed(2) + ' Cr';
+      if (abs >= 1e5) return (n < 0 ? '-' : '') + '₹' + (abs / 1e5).toFixed(2) + ' L';
+      return (n < 0 ? '-' : '') + '₹' + abs.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const pct = (n) => (isNaN(n) || !isFinite(n)) ? '0.00%' : n.toFixed(2) + '%';
+
+    /* ─── Broker Presets ─── */
+    const BROKERS = {
+      zerodha: { name: 'Zerodha', brokerage: 20, sttRate: 0.000625, exchangeRate: 0.0000325, gstRate: 0.18, sebiRate: 0.000001, stampRate: 0.00003 },
+      groww:   { name: 'Groww',   brokerage: 20, sttRate: 0.000625, exchangeRate: 0.0000325, gstRate: 0.18, sebiRate: 0.000001, stampRate: 0.00003 },
+      angel:   { name: 'Angel One', brokerage: 20, sttRate: 0.000625, exchangeRate: 0.0000325, gstRate: 0.18, sebiRate: 0.000001, stampRate: 0.00003 },
+      upstox:  { name: 'Upstox',  brokerage: 20, sttRate: 0.000625, exchangeRate: 0.0000325, gstRate: 0.18, sebiRate: 0.000001, stampRate: 0.00003 },
+      custom:  { name: 'Custom',  brokerage: 20, sttRate: 0.000625, exchangeRate: 0.0000325, gstRate: 0.18, sebiRate: 0.000001, stampRate: 0.00003 },
+    };
+
+    /* ─── ICONS ─── */
+    const ArrowUp = () => (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="18 15 12 9 6 15"/>
+      </svg>
+    );
+    const ArrowDown = () => (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    );
+    const TrendUp = () => (
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+        <polyline points="17 6 23 6 23 12"/>
+      </svg>
+    );
+    const TrendDown = () => (
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
+        <polyline points="17 18 23 18 23 12"/>
+      </svg>
+    );
+    const CalcIcon = () => (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="4" y="2" width="16" height="20" rx="2"/>
+        <line x1="8" y1="6" x2="16" y2="6"/>
+        <line x1="8" y1="10" x2="8" y2="10.01"/>
+        <line x1="12" y1="10" x2="12" y2="10.01"/>
+        <line x1="16" y1="10" x2="16" y2="10.01"/>
+        <line x1="8" y1="14" x2="8" y2="14.01"/>
+        <line x1="12" y1="14" x2="12" y2="14.01"/>
+        <line x1="16" y1="14" x2="16" y2="14.01"/>
+        <line x1="8" y1="18" x2="8" y2="18.01"/>
+        <line x1="12" y1="18" x2="16" y2="18"/>
+      </svg>
+    );
+    const SettingsIcon = () => (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+      </svg>
+    );
+
+    /* ═══════════════════════════════════════════════════
+       HEADER
+    ═══════════════════════════════════════════════════ */
+    const Header = () => (
+      <header style={{ background: 'linear-gradient(135deg, rgba(20,24,40,0.98), rgba(15,18,30,0.98))', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CalcIcon />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold tracking-wide" style={{ color: '#f1f5f9', letterSpacing: '0.05em' }}>NIFTY TRADE PRO</h1>
+                <p className="text-xs" style={{ color: '#64748b' }}>Options Profit & Loss Calculator</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}>
+              <div className="pulse-dot"></div>
+              <span className="text-xs font-semibold" style={{ color: '#818cf8' }}>NIFTY 50</span>
+            </div>
+            <div className="px-3 py-1.5 rounded-full text-xs font-medium" style={{ background: 'rgba(255,255,255,0.04)', color: '#64748b' }}>
+              🌙 Dark
+            </div>
+          </div>
+        </div>
+      </header>
+    );
+
+    /* ═══════════════════════════════════════════════════
+       INPUT SECTION
+    ═══════════════════════════════════════════════════ */
+    const InputField = ({ label, prefix, children, ...props }) => (
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-medium" style={{ color: '#94a3b8' }}>{label}</label>
+        {children ? children : (
+          <div className="relative">
+            {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#64748b' }}>{prefix}</span>}
+            <input className="input-field" style={prefix ? { paddingLeft: 32 } : {}} {...props} />
+          </div>
+        )}
+      </div>
+    );
+
+    const TradeInputs = ({ state, onChange }) => (
+      <div className="glass-card p-6 fade-in">
+        <div className="flex items-center gap-2 mb-5">
+          <div style={{ width: 4, height: 20, borderRadius: 2, background: '#6366f1' }}></div>
+          <h2 className="text-base font-semibold" style={{ color: '#f1f5f9' }}>Configure Your Trade</h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <InputField label="Instrument">
+            <input className="input-field" name="instrument" value={state.instrument} onChange={onChange} />
+          </InputField>
+          <InputField label="Option Type">
+            <select className="input-field" name="optionType" value={state.optionType} onChange={onChange}>
+              <option value="CE">CE (Call)</option>
+              <option value="PE">PE (Put)</option>
+            </select>
+          </InputField>
+          <InputField label="Trade Direction">
+            <select className="input-field" name="direction" value={state.direction} onChange={onChange}>
+              <option value="BUY">BUY</option>
+              <option value="SELL">SELL</option>
+            </select>
+          </InputField>
+          <InputField label="Buy Price" prefix="₹">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#64748b' }}>₹</span>
+              <input className="input-field" style={{ paddingLeft: 32 }} type="number" step="0.05" name="buyPrice" value={state.buyPrice || ''} onChange={onChange} placeholder="0.00" />
+            </div>
+          </InputField>
+          <InputField label="Target Price" prefix="₹">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#64748b' }}>₹</span>
+              <input className="input-field" style={{ paddingLeft: 32 }} type="number" step="0.05" name="targetPrice" value={state.targetPrice || ''} onChange={onChange} placeholder="0.00" />
+            </div>
+          </InputField>
+          <InputField label="Stop-Loss Price" prefix="₹">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#64748b' }}>₹</span>
+              <input className="input-field" style={{ paddingLeft: 32 }} type="number" step="0.05" name="stopLossPrice" value={state.stopLossPrice || ''} onChange={onChange} placeholder="0.00" />
+            </div>
+          </InputField>
+          <InputField label="Number of Lots">
+            <input className="input-field" type="number" name="lots" value={state.lots || ''} onChange={onChange} placeholder="1" />
+          </InputField>
+          <InputField label="Qty Per Lot">
+            <input className="input-field" type="number" name="qtyPerLot" value={state.qtyPerLot || ''} onChange={onChange} placeholder="25" />
+          </InputField>
+        </div>
+        <div className="mt-5 flex items-center gap-4 flex-wrap">
+          <div className="px-4 py-2.5 rounded-xl" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.15)' }}>
+            <span className="text-xs" style={{ color: '#94a3b8' }}>Total Quantity</span>
+            <span className="ml-2 text-lg font-bold" style={{ color: '#818cf8' }}>{(state.totalQty || 0).toLocaleString('en-IN')}</span>
+          </div>
+          <div className="px-4 py-2.5 rounded-xl" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)' }}>
+            <span className="text-xs" style={{ color: '#94a3b8' }}>Investment</span>
+            <span className="ml-2 text-lg font-bold" style={{ color: '#10b981' }}>{fmt((state.buyPrice || 0) * (state.totalQty || 0))}</span>
+          </div>
+        </div>
+      </div>
+    );
+
+    /* ═══════════════════════════════════════════════════
+       P&L CARDS
+    ═══════════════════════════════════════════════════ */
+    const ProfitCard = ({ targetPrice, profitPerUnit, grossProfit, charges, netProfit, totalQty }) => (
+      <div className="glass-card profit-card p-6 flex-1 fade-in">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <ArrowUp />
+              <h3 className="text-sm font-semibold" style={{ color: '#10b981' }}>PROFIT TARGET</h3>
+            </div>
+            <p className="text-xs" style={{ color: '#64748b' }}>If target is hit</p>
+          </div>
+          <TrendUp />
+        </div>
+        <div className="number-big mb-4" style={{ color: '#10b981' }}>{fmt(netProfit)}</div>
+        <div className="space-y-2.5">
+          <div className="flex justify-between text-sm"><span style={{ color: '#94a3b8' }}>Target Price</span><span className="font-medium">{fmt(targetPrice)}</span></div>
+          <div className="flex justify-between text-sm"><span style={{ color: '#94a3b8' }}>Profit / Unit</span><span className="font-medium" style={{ color: '#10b981' }}>{fmt(profitPerUnit)}</span></div>
+          <div className="flex justify-between text-sm"><span style={{ color: '#94a3b8' }}>Gross Profit</span><span className="font-medium" style={{ color: '#10b981' }}>{fmt(grossProfit)}</span></div>
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }}></div>
+          <div className="flex justify-between text-sm"><span style={{ color: '#94a3b8' }}>Est. Charges</span><span className="font-medium" style={{ color: '#f59e0b' }}>−{fmt(charges)}</span></div>
+          <div style={{ height: 1, background: 'rgba(16,185,129,0.15)' }}></div>
+          <div className="flex justify-between text-sm font-bold"><span style={{ color: '#e2e8f0' }}>Net Profit</span><span style={{ color: '#10b981' }}>{fmt(netProfit)}</span></div>
+        </div>
+      </div>
+    );
+
+    const LossCard = ({ stopLossPrice, lossPerUnit, grossLoss, charges, netLoss, totalQty }) => (
+      <div className="glass-card loss-card p-6 flex-1 fade-in">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <ArrowDown />
+              <h3 className="text-sm font-semibold" style={{ color: '#ef4444' }}>STOP-LOSS</h3>
+            </div>
+            <p className="text-xs" style={{ color: '#64748b' }}>If stop-loss is hit</p>
+          </div>
+          <TrendDown />
+        </div>
+        <div className="number-big mb-4" style={{ color: '#ef4444' }}>−{fmt(netLoss)}</div>
+        <div className="space-y-2.5">
+          <div className="flex justify-between text-sm"><span style={{ color: '#94a3b8' }}>Stop-Loss Price</span><span className="font-medium">{fmt(stopLossPrice)}</span></div>
+          <div className="flex justify-between text-sm"><span style={{ color: '#94a3b8' }}>Loss / Unit</span><span className="font-medium" style={{ color: '#ef4444' }}>{fmt(lossPerUnit)}</span></div>
+          <div className="flex justify-between text-sm"><span style={{ color: '#94a3b8' }}>Gross Loss</span><span className="font-medium" style={{ color: '#ef4444' }}>{fmt(grossLoss)}</span></div>
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }}></div>
+          <div className="flex justify-between text-sm"><span style={{ color: '#94a3b8' }}>Est. Charges</span><span className="font-medium" style={{ color: '#f59e0b' }}>+{fmt(charges)}</span></div>
+          <div style={{ height: 1, background: 'rgba(239,68,68,0.15)' }}></div>
+          <div className="flex justify-between text-sm font-bold"><span style={{ color: '#e2e8f0' }}>Net Loss</span><span style={{ color: '#ef4444' }}>−{fmt(netLoss)}</span></div>
+        </div>
+      </div>
+    );
+
+    /* ═══════════════════════════════════════════════════
+       ANALYTICS
+    ═══════════════════════════════════════════════════ */
+    const StatBlock = ({ label, value, color }) => (
+      <div className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.04)' }}>
+        <div className="text-xs mb-1" style={{ color: '#64748b' }}>{label}</div>
+        <div className="text-base font-bold" style={{ color: color || '#e2e8f0' }}>{value}</div>
+      </div>
+    );
+
+    const Analytics = ({ state, charges, grossProfit, grossLoss, netProfit, netLoss, rrr }) => {
+      const investment = (state.buyPrice || 0) * (state.totalQty || 0);
+      const targetDist = (state.targetPrice || 0) - (state.buyPrice || 0);
+      const slDist = (state.buyPrice || 0) - (state.stopLossPrice || 0);
+      const targetDistPct = state.buyPrice ? (targetDist / state.buyPrice) * 100 : 0;
+      const slDistPct = state.buyPrice ? (slDist / state.buyPrice) * 100 : 0;
+      const rrrWidth = Math.min(Math.max((rrr / (rrr + 1)) * 100, 0), 100);
+      const rrrColor = rrr >= 2 ? '#10b981' : rrr >= 1 ? '#f59e0b' : '#ef4444';
+
+      return (
+        <div className="glass-card p-6 fade-in">
+          <div className="flex items-center gap-2 mb-5">
+            <div style={{ width: 4, height: 20, borderRadius: 2, background: '#818cf8' }}></div>
+            <h2 className="text-base font-semibold" style={{ color: '#f1f5f9' }}>Trading Analytics</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            <StatBlock label="Total Investment" value={fmt(investment)} color="#818cf8" />
+            <StatBlock label="Potential Profit" value={fmt(netProfit)} color="#10b981" />
+            <StatBlock label="Max Potential Loss" value={'−' + fmt(netLoss)} color="#ef4444" />
+            <StatBlock label="Risk : Reward" value={isFinite(rrr) ? '1 : ' + rrr.toFixed(2) : '—'} color={rrrColor} />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
+            <StatBlock label="Target Distance" value={fmt(targetDist) + ' (' + pct(targetDistPct) + ')'} color="#10b981" />
+            <StatBlock label="Stop-Loss Distance" value={fmt(slDist) + ' (' + pct(slDistPct) + ')'} color="#ef4444" />
+            <StatBlock label="Est. Brokerage & Taxes" value={fmt(charges)} color="#f59e0b" />
+          </div>
+          {/* R:R visual bar */}
+          <div>
+            <div className="flex justify-between text-xs mb-1.5">
+              <span style={{ color: '#64748b' }}>Risk–Reward Indicator</span>
+              <span style={{ color: rrrColor }}>{isFinite(rrr) ? '1 : ' + rrr.toFixed(2) : '—'}</span>
+            </div>
+            <div className="rrr-bar">
+              <div className="rrr-fill" style={{ width: rrrWidth + '%', background: `linear-gradient(90deg, ${rrrColor}, ${rrrColor}88)` }}></div>
+            </div>
+            <div className="flex justify-between text-xs mt-1" style={{ color: '#475569' }}>
+              <span>Poor (0)</span>
+              <span>Good (1:1)</span>
+              <span>Excellent (2:1+)</span>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    /* ═══════════════════════════════════════════════════
+       BROKERAGE MODAL
+    ═══════════════════════════════════════════════════ */
+    const BrokerageModal = ({ broker, brokerCharges, setBroker, setBrokerCharges, onClose }) => {
+      const handleBrokerSelect = (key) => {
+        setBroker(key);
+        setBrokerCharges({ ...BROKERS[key] });
+      };
+      const handleChargeChange = (field, val) => {
+        setBroker('custom');
+        setBrokerCharges(prev => ({ ...prev, [field]: parseFloat(val) || 0 }));
+      };
+      return (
+        <div className="broker-modal-overlay" onClick={onClose}>
+          <div className="broker-modal" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold" style={{ color: '#f1f5f9' }}>Brokerage & Charges</h3>
+              <button onClick={onClose} className="text-2xl" style={{ color: '#64748b', cursor: 'pointer', background: 'none', border: 'none' }}>×</button>
+            </div>
+            <p className="text-xs mb-4" style={{ color: '#f59e0b' }}>⚠ All charges are estimates. Actual charges may vary.</p>
+            <div className="mb-5">
+              <label className="text-xs font-medium mb-2 block" style={{ color: '#94a3b8' }}>Select Broker</label>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(BROKERS).map(([key, b]) => (
+                  <button
+                    key={key}
+                    onClick={() => handleBrokerSelect(key)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                    style={{
+                      background: broker === key ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)',
+                      border: broker === key ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.06)',
+                      color: broker === key ? '#818cf8' : '#94a3b8',
+                      cursor: 'pointer',
+                    }}
+                  >{b.name}</button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-3">
+              {[
+                { key: 'brokerage', label: 'Flat Brokerage (₹ per order)', unit: '₹' },
+                { key: 'sttRate', label: 'STT Rate', unit: '%', mult: 100 },
+                { key: 'exchangeRate', label: 'Exchange Transaction Charges', unit: '%', mult: 100 },
+                { key: 'gstRate', label: 'GST Rate', unit: '%', mult: 100 },
+                { key: 'sebiRate', label: 'SEBI Charges Rate', unit: '%', mult: 1000000 },
+                { key: 'stampRate', label: 'Stamp Duty Rate', unit: '%', mult: 100 },
+              ].map(({ key, label, unit, mult }) => (
+                <div key={key} className="flex items-center justify-between gap-3">
+                  <label className="text-xs flex-1" style={{ color: '#94a3b8' }}>{label}</label>
+                  <input
+                    className="input-field text-right"
+                    style={{ width: 120, padding: '8px 12px', fontSize: 13 }}
+                    type="number"
+                    step="any"
+                    value={mult ? (brokerCharges[key] * mult).toFixed(mult > 100 ? 4 : 4) : brokerCharges[key]}
+                    onChange={e => handleChargeChange(key, mult ? parseFloat(e.target.value) / mult : e.target.value)}
+                  />
+                </div>
+              ))}
+            </div>
+            <button className="btn-primary w-full mt-6" onClick={onClose}>Done</button>
+          </div>
+        </div>
+      );
+    };
+
+    /* ═══════════════════════════════════════════════════
+       TRADE SUMMARY
+    ═══════════════════════════════════════════════════ */
+    const TradeSummary = ({ state, netProfit, netLoss, rrr, charges }) => (
+      <div className="glass-card p-6 fade-in">
+        <div className="flex items-center gap-2 mb-5">
+          <div style={{ width: 4, height: 20, borderRadius: 2, background: '#f59e0b' }}></div>
+          <h2 className="text-base font-semibold" style={{ color: '#f1f5f9' }}>Trade Summary</h2>
+        </div>
+        <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', fontFamily: 'monospace', fontSize: 13, lineHeight: 2, color: '#94a3b8' }}>
+          <div><span style={{ color: '#64748b' }}>Instrument  :</span> <span style={{ color: '#e2e8f0' }}>{state.instrument}</span></div>
+          <div><span style={{ color: '#64748b' }}>Option      :</span> <span style={{ color: '#e2e8f0' }}>{state.optionType} · {state.direction}</span></div>
+          <div><span style={{ color: '#64748b' }}>Entry Price :</span> <span style={{ color: '#e2e8f0' }}>{fmt(state.buyPrice)}</span></div>
+          <div><span style={{ color: '#64748b' }}>Target      :</span> <span style={{ color: '#10b981' }}>{fmt(state.targetPrice)}</span>  <span style={{ color: '#64748b' }}>→ Net P&L</span> <span style={{ color: '#10b981' }}>{fmt(netProfit)}</span></div>
+          <div><span style={{ color: '#64748b' }}>Stop-Loss   :</span> <span style={{ color: '#ef4444' }}>{fmt(state.stopLossPrice)}</span>  <span style={{ color: '#64748b' }}>→ Net P&L</span> <span style={{ color: '#ef4444' }}>−{fmt(netLoss)}</span></div>
+          <div><span style={{ color: '#64748b' }}>Lots × Qty  :</span> <span style={{ color: '#e2e8f0' }}>{state.lots || 0} × {state.qtyPerLot || 0} = {(state.totalQty || 0).toLocaleString('en-IN')}</span></div>
+          <div><span style={{ color: '#64748b' }}>Risk:Reward :</span> <span style={{ color: '#818cf8' }}>{isFinite(rrr) ? '1 : ' + rrr.toFixed(2) : '—'}</span></div>
+          <div><span style={{ color: '#64748b' }}>Charges     :</span> <span style={{ color: '#f59e0b' }}>≈ {fmt(charges)}</span></div>
+        </div>
+      </div>
+    );
+
+    /* ═══════════════════════════════════════════════════
+       CHARGE BREAKDOWN
+    ═══════════════════════════════════════════════════ */
+    const ChargeBreakdown = ({ chargeDetails }) => (
+      <div className="glass-card p-6 fade-in">
+        <div className="flex items-center gap-2 mb-5">
+          <div style={{ width: 4, height: 20, borderRadius: 2, background: '#f59e0b' }}></div>
+          <h2 className="text-base font-semibold" style={{ color: '#f1f5f9' }}>Estimated Charges Breakdown</h2>
+        </div>
+        <div className="space-y-2">
+          {chargeDetails.map((c, i) => (
+            <div key={i} className="flex justify-between text-sm py-1.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+              <span style={{ color: '#94a3b8' }}>{c.label}</span>
+              <span className="font-medium" style={{ color: '#e2e8f0' }}>{fmt(c.value)}</span>
+            </div>
+          ))}
+          <div className="flex justify-between text-sm font-bold pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <span style={{ color: '#f59e0b' }}>Total Estimated Charges</span>
+            <span style={{ color: '#f59e0b' }}>{fmt(chargeDetails.reduce((s, c) => s + c.value, 0))}</span>
+          </div>
+        </div>
+        <p className="text-xs mt-3" style={{ color: '#475569' }}>* All charges are approximate estimates and may vary based on actual broker policies.</p>
+      </div>
+    );
+
+    /* ═══════════════════════════════════════════════════
+       APP ROOT
+    ═══════════════════════════════════════════════════ */
+    const App = () => {
+      const [state, setState] = useState({
+        instrument: 'NIFTY 50', optionType: 'CE', direction: 'BUY',
+        buyPrice: '', targetPrice: '', stopLossPrice: '',
+        lots: '', qtyPerLot: '', totalQty: 0,
+      });
+      const [broker, setBroker] = useState('zerodha');
+      const [brokerCharges, setBrokerCharges] = useState({ ...BROKERS.zerodha });
+      const [showBroker, setShowBroker] = useState(false);
+      const [toast, setToast] = useState('');
+
+      const onChange = useCallback((e) => {
+        const { name, value } = e.target;
+        const nums = ['buyPrice', 'targetPrice', 'stopLossPrice', 'lots', 'qtyPerLot'];
+        setState(prev => ({
+          ...prev,
+          [name]: nums.includes(name) ? (value === '' ? '' : Number(value)) : value,
+        }));
+      }, []);
+
+      // Auto-calc total qty
+      useEffect(() => {
+        setState(prev => ({ ...prev, totalQty: (prev.lots || 0) * (prev.qtyPerLot || 0) }));
+      }, [state.lots, state.qtyPerLot]);
+
+      // Calculations
+      const calcs = useMemo(() => {
+        const bp = state.buyPrice || 0;
+        const tp = state.targetPrice || 0;
+        const sl = state.stopLossPrice || 0;
+        const qty = state.totalQty || 0;
+        const turnover = bp * qty;
+
+        // Charges
+        const brokerage = Math.min(brokerCharges.brokerage, turnover * 0.0025) || 0; // flat or 0.25% whichever lower
+        const stt = turnover * brokerCharges.sttRate;
+        const exchange = turnover * brokerCharges.exchangeRate;
+        const gst = (brokerage + exchange) * brokerCharges.gstRate;
+        const sebi = turnover * brokerCharges.sebiRate;
+        const stamp = turnover * brokerCharges.stampRate;
+        const totalCharges = brokerage + stt + exchange + gst + sebi + stamp;
+
+        const profitPerUnit = tp - bp;
+        const lossPerUnit = bp - sl;
+        const grossProfit = profitPerUnit * qty;
+        const grossLoss = lossPerUnit * qty;
+        const netProfit = grossProfit - totalCharges;
+        const netLoss = grossLoss + totalCharges;
+        const rrr = lossPerUnit > 0 ? profitPerUnit / lossPerUnit : 0;
+
+        const chargeDetails = [
+          { label: 'Brokerage', value: brokerage },
+          { label: 'STT (Securities Transaction Tax)', value: stt },
+          { label: 'Exchange Transaction Charges', value: exchange },
+          { label: 'GST (Goods & Services Tax)', value: gst },
+          { label: 'SEBI Charges', value: sebi },
+          { label: 'Stamp Duty', value: stamp },
+        ];
+
+        return { profitPerUnit, lossPerUnit, grossProfit, grossLoss, netProfit, netLoss, rrr, totalCharges, chargeDetails };
+      }, [state.buyPrice, state.targetPrice, state.stopLossPrice, state.totalQty, brokerCharges]);
+
+      const reset = () => {
+        setState({ instrument: 'NIFTY 50', optionType: 'CE', direction: 'BUY', buyPrice: '', targetPrice: '', stopLossPrice: '', lots: '', qtyPerLot: '', totalQty: 0 });
+        setBroker('zerodha');
+        setBrokerCharges({ ...BROKERS.zerodha });
+        showToast('Calculator reset');
+      };
+
+      const saveTrade = () => {
+        const summary = {
+          ...state,
+          broker: brokerCharges.name,
+          netProfit: calcs.netProfit,
+          netLoss: calcs.netLoss,
+          rrr: calcs.rrr,
+          charges: calcs.totalCharges,
+          savedAt: new Date().toISOString(),
+        };
+        const existing = JSON.parse(localStorage.getItem('nifty_trades') || '[]');
+        existing.push(summary);
+        localStorage.setItem('nifty_trades', JSON.stringify(existing));
+        showToast('Trade saved successfully!');
+      };
+
+      const showToast = (msg) => {
+        setToast(msg);
+        setTimeout(() => setToast(''), 2500);
+      };
+
+      // Validation hints
+      const warnings = [];
+      if (state.buyPrice && state.targetPrice && state.targetPrice <= state.buyPrice) warnings.push('Target price should be above buy price for a BUY trade.');
+      if (state.buyPrice && state.stopLossPrice && state.stopLossPrice >= state.buyPrice) warnings.push('Stop-loss should be below buy price for a BUY trade.');
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          <Header />
+          <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6 space-y-5">
+            {/* Trade Inputs */}
+            <TradeInputs state={state} onChange={onChange} />
+
+            {/* Validation warnings */}
+            {warnings.length > 0 && (
+              <div className="rounded-xl p-3" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                {warnings.map((w, i) => <p key={i} className="text-xs" style={{ color: '#f59e0b' }}>⚠ {w}</p>)}
+              </div>
+            )}
+
+            {/* P&L Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <ProfitCard
+                targetPrice={state.targetPrice || 0}
+                profitPerUnit={calcs.profitPerUnit}
+                grossProfit={calcs.grossProfit}
+                charges={calcs.totalCharges}
+                netProfit={calcs.netProfit}
+                totalQty={state.totalQty}
+              />
+              <LossCard
+                stopLossPrice={state.stopLossPrice || 0}
+                lossPerUnit={calcs.lossPerUnit}
+                grossLoss={calcs.grossLoss}
+                charges={calcs.totalCharges}
+                netLoss={calcs.netLoss}
+                totalQty={state.totalQty}
+              />
+            </div>
+
+            {/* Analytics */}
+            <Analytics
+              state={state}
+              charges={calcs.totalCharges}
+              grossProfit={calcs.grossProfit}
+              grossLoss={calcs.grossLoss}
+              netProfit={calcs.netProfit}
+              netLoss={calcs.netLoss}
+              rrr={calcs.rrr}
+            />
+
+            {/* Trade Summary + Charges side by side on desktop */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <TradeSummary state={state} netProfit={calcs.netProfit} netLoss={calcs.netLoss} rrr={calcs.rrr} charges={calcs.totalCharges} />
+              <ChargeBreakdown chargeDetails={calcs.chargeDetails} />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-center gap-3 flex-wrap pb-6">
+              <button className="btn-secondary flex items-center gap-2" onClick={reset}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                Reset
+              </button>
+              <button className="btn-green flex items-center gap-2" onClick={saveTrade}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save Trade
+              </button>
+              <button className="btn-secondary flex items-center gap-2" onClick={() => setShowBroker(true)}>
+                <SettingsIcon />
+                Brokerage Settings
+              </button>
+            </div>
+          </main>
+
+          {/* Footer */}
+          <footer className="text-center py-4 text-xs" style={{ color: '#334155', borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+            NIFTY TRADE PRO · Options P&L Calculator · For educational purposes only · No real trading
+          </footer>
+
+          {/* Modals */}
+          {showBroker && (
+            <BrokerageModal
+              broker={broker}
+              brokerCharges={brokerCharges}
+              setBroker={setBroker}
+              setBrokerCharges={setBrokerCharges}
+              onClose={() => setShowBroker(false)}
+            />
+          )}
+
+          {/* Toast */}
+          {toast && <div className="toast">{toast}</div>}
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
